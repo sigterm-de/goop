@@ -1,0 +1,25 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - staticcheck
+    - govet
+    - misspell
+
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*os.File).Close
+        - (io.Closer).Close
+        - (*github.com/dop251/goja.Runtime).Set
+        - (*github.com/dop251/goja.Object).Set
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck

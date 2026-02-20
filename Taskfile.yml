@@ -1,0 +1,128 @@
+version: "3"
+
+vars:
+  BINARY: goop
+  CMD: ./cmd/goop
+  COVER_OUT: coverage.out
+  COVER_PKGS: ./internal/engine/...,./internal/scripts/...,./internal/logging/...
+
+env:
+  CGO_ENABLED: "1"
+  CC: clang
+
+tasks:
+  default:
+    desc: List available tasks
+    cmd: task --list
+
+  build:
+    desc: Compile the binary
+    cmd: go build -o {{.BINARY}} {{.CMD}}
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.BINARY}}"
+
+  build:release:
+    desc: Compile with version ldflags stripped for release
+    vars:
+      VERSION:
+        sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+      COMMIT:
+        sh: git rev-parse --short HEAD 2>/dev/null || echo "none"
+      DATE:
+        sh: date -u +%Y-%m-%dT%H:%M:%SZ
+    cmd: >
+      go build
+      -ldflags "-s -w
+        -X main.version={{.VERSION}}
+        -X main.commit={{.COMMIT}}
+        -X main.date={{.DATE}}"
+      -o {{.BINARY}} {{.CMD}}
+
+  test:
+    desc: Run all tests with race detector
+    cmd: go test -race -timeout 60s ./...
+
+  test:coverage:
+    desc: Run tests and print per-function coverage (gate ≥80%)
+    cmds:
+      - go test -race -timeout 60s -coverprofile={{.COVER_OUT}} -coverpkg={{.COVER_PKGS}} ./tests/...
+      - go tool cover -func={{.COVER_OUT}}
+      - |
+        total=$(CC=clang go tool cover -func={{.COVER_OUT}} | tail -1 | awk '{print $3}' | tr -d '%')
+        echo "Total coverage: ${total}%"
+        awk -v t="$total" 'BEGIN { if (t+0 < 80) { print "FAIL: coverage " t "% below 80% gate"; exit 1 } }'
+
+  lint:
+    desc: Run golangci-lint
+    cmd: golangci-lint run ./...
+  lint:fix:
+    desc: Run golangci-lint
+    cmd: golangci-lint run --fix ./...
+
+  fmt:
+    desc: Format all Go source files
+    cmd: gofmt -w .
+
+  fmt:check:
+    desc: Check formatting without modifying files (for CI)
+    cmd: |
+      unformatted=$(CC=clang gofmt -l .)
+      if [ -n "$unformatted" ]; then
+        echo "Unformatted files:"
+        echo "$unformatted"
+        exit 1
+      fi
+      echo "All files formatted."
+
+  vet:
+    desc: Run go vet
+    cmd: go vet ./...
+
+  fix:
+    desc: Run go fix
+    cmd: go fix ./...
+
+  tidy:
+    desc: Run go mod tidy
+    cmd: go mod tidy
+
+  check:
+    desc: Run fmt:check, fix, vet, lint and test (full pre-commit gate)
+    cmds:
+      - task: fmt:check
+      - task: fix
+      - task: vet
+      - task: lint
+      - task: test
+
+  install:
+    desc: Install binary, desktop file and icon to ~/.local
+    deps: [build]
+    cmds:
+      - install -Dm755 {{.BINARY}} ~/.local/bin/{{.BINARY}}
+      - install -Dm644 .desktop/goop.desktop ~/.local/share/applications/goop.desktop
+      - install -Dm644 assets/icons/goop.png ~/.local/share/icons/hicolor/256x256/apps/goop.png
+      - install -Dm644 assets/icons/goop-drop.svg ~/.local/share/icons/hicolor/scalable/apps/goop.svg
+      - update-desktop-database ~/.local/share/applications 2>/dev/null || true
+      - gtk-update-icon-cache -t ~/.local/share/icons/hicolor 2>/dev/null || true
+
+  uninstall:
+    desc: Remove installed binary, desktop file and icon from ~/.local
+    cmds:
+      - rm -f ~/.local/bin/{{.BINARY}}
+      - rm -f ~/.local/share/applications/goop.desktop
+      - rm -f ~/.local/share/icons/hicolor/256x256/apps/goop.png
+      - rm -f ~/.local/share/icons/hicolor/scalable/apps/goop.svg
+      - update-desktop-database ~/.local/share/applications 2>/dev/null || true
+      - gtk-update-icon-cache -t ~/.local/share/icons/hicolor 2>/dev/null || true
+
+  clean:
+    desc: Remove build artifacts and coverage files
+    cmds:
+      - rm -f {{.BINARY}}
+      - rm -f {{.COVER_OUT}}
+      - go clean -cache

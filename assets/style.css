@@ -1,0 +1,87 @@
+/* goop application stylesheet */
+
+.script-picker {
+    background: @theme_bg_color;
+    border-left: 1px solid @borders;
+    min-width: 320px;
+    max-width: 400px;
+}
+
+.picker-frame {
+    margin: 0;
+    border-radius: 0;
+}
+
+.script-list {
+    background: @theme_bg_color;
+}
+
+.script-list row {
+    border-bottom: 1px solid alpha(@borders, 0.5);
+}
+
+.script-list row:selected {
+    background: @theme_selected_bg_color;
+    color: @theme_selected_fg_color;
+}
+
+/* Keep selection visible even when the list does not have keyboard focus. */
+.script-list row:selected:not(:focus-within) {
+    background: alpha(@theme_selected_bg_color, 0.6);
+}
+
+/* Suppress the default dotted focus ring on rows; position is shown by
+   the selection highlight instead. */
+.script-list row:focus {
+    outline: none;
+}
+
+.script-icon {
+    opacity: 0.6;
+    min-width: 16px;
+}
+
+.script-name {
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.script-desc {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.user-script-badge {
+    background: @theme_selected_bg_color;
+    color: @theme_selected_fg_color;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.7em;
+    margin-top: 2px;
+}
+
+.statusbar {
+    border-top: 1px solid @borders;
+    background: @theme_bg_color;
+    padding: 4px 12px;
+}
+
+.statusbar-idle label {
+    opacity: 0.5;
+    font-size: 0.85em;
+}
+
+.statusbar-error {
+    background: alpha(#e74c3c, 0.15);
+    color: #e74c3c;
+}
+
+.statusbar-success {
+    background: alpha(#27ae60, 0.1);
+    color: #27ae60;
+}
+
+.no-results-label {
+    opacity: 0.5;
+    padding: 16px;
+}

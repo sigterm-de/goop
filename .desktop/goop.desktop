@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=goop
+Comment=Text transformation tool
+Exec=goop
+Icon=goop
+Type=Application
+Categories=Utility;TextTools;
+Keywords=text;transform;boop;encode;decode;
+Terminal=false
+StartupNotify=true
