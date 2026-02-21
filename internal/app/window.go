@@ -83,8 +83,13 @@ func NewApplicationWindow(
 	w.revealer.SetChild(pickerFrame)
 
 	// ── Overlay: editor as base + picker panel as overlay ────────────────────
+	editorScroll := gtk.NewScrolledWindow()
+	editorScroll.SetVExpand(true)
+	editorScroll.SetHExpand(true)
+	editorScroll.SetChild(w.editor.View)
+
 	overlay := gtk.NewOverlay()
-	overlay.SetChild(w.editor.View)
+	overlay.SetChild(editorScroll)
 	overlay.AddOverlay(w.revealer)
 	overlay.SetVExpand(true)
 

@@ -77,55 +77,10 @@ task: Available tasks for this project:
 
 # Custom Scripts
 
-Check out Ivan's documentation over at [Boop/Documentation](https://github.com/IvanMathy/Boop/blob/main/Boop/Documentation/CustomScripts.md)
-
-Place `.js` files in `~/.config/goop/scripts/`. Scripts must begin with a
-metadata header:
-
-```js
-/**!
- * @name          My Script
- * @description   What this script does
- * @icon          star
- * @tags          custom,example
- */
-
-function main(state) {
-    // state.text        — selected text (read/write)
-    // state.fullText    — entire document (read/write)
-    // state.selection   — {start, end} character offsets (read-only)
-    // state.insert(str) — insert string at cursor
-    // state.postError(msg) — display an error message
-
-    state.text = state.text.toUpperCase();
-}
-```
-
-### State API Quick Reference
-
-| Property / Method | Type | Description |
-|---|---|---|
-| `state.text` | `string` (r/w) | Selected text; if nothing selected, equals `fullText` |
-| `state.fullText` | `string` (r/w) | Entire document content |
-| `state.selection` | `{start, end}` (r) | Character offsets of current selection |
-| `state.insert(str)` | method | Insert `str` at the current cursor position |
-| `state.postError(msg)` | method | Display `msg` as an error in the status bar |
-
-### Available `@boop/` Modules
-
-Community-compatible modules available via `require()`:
-
-| Module | Functions |
-|---|---|
-| `@boop/base64` | `encode(str)`, `decode(str)` |
-| `@boop/yaml` | `parse(str)`, `stringify(obj)` |
-| `@boop/plist` | `parse(str)`, `stringify(obj)`, `parseBinary(str)` |
-| `@boop/hashes` | Hashes object (MD5, SHA-1, SHA-256, ...) |
-| `@boop/he` | `encode(str)`, `decode(str)` (HTML entities) |
-| `@boop/js-yaml` | full js-yaml API |
-| `@boop/lodash.boop` | `camelCase`, `kebabCase`, `snakeCase`, `startCase`, `deburr`, `size` |
-| `@boop/vkBeautify` | `xml`, `xmlmin`, `css`, `cssmin`, `sql`, `sqlmin` |
-| `@boop/papaparse.js` | Papa.parse / Papa.unparse (CSV) |
+Place `.js` files in `~/.config/goop/scripts/`. See
+[writing-scripts.md](writing-scripts.md) for the full guide, including
+the state API, available `@boop/` modules, and how CommonJS `require()` works in
+goop (an improvement over original Boop, which had no module system at all).
 
 ## Community Scripts
 

@@ -119,6 +119,20 @@ tasks:
       - update-desktop-database ~/.local/share/applications 2>/dev/null || true
       - gtk-update-icon-cache -t ~/.local/share/icons/hicolor 2>/dev/null || true
 
+  forge:bundle:
+    desc: Rebuild the bundled node-forge library (requires node, npx)
+    vars:
+      FORGE_DIR: /tmp/forge-build
+      OUT: assets/scripts/lib/node-forge.js
+    cmds:
+      - mkdir -p {{.FORGE_DIR}}
+      - cd {{.FORGE_DIR}} && npm init -y && npm install node-forge
+      - echo "module.exports = require('node-forge');" > {{.FORGE_DIR}}/index.js
+      - cd {{.FORGE_DIR}} && npx browserify index.js --standalone forge -o node-forge.bundle.js
+      - cd {{.FORGE_DIR}} && npx terser node-forge.bundle.js --compress --mangle -o node-forge.min.js
+      - printf 'const window = this;\n' | cat - {{.FORGE_DIR}}/node-forge.min.js > {{.OUT}}
+      - echo "Bundle written to {{.OUT}} ($(wc -c < {{.OUT}}) bytes)"
+
   clean:
     desc: Remove build artifacts and coverage files
     cmds:
