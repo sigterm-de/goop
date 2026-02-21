@@ -3,8 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-02-20
 
 ## Active Technologies
-
-- Go 1.22+; `CGO_ENABLED=1` (required by gotk4 GTK4 bindings) (001-boop-core)
+- Go 1.22+ (`CGO_ENABLED=1`, `CC=clang`) (required by gotk4 GTK4 bindings) (001-boop-core)
+- `AppPreferences` JSON file via XDG (existing mechanism); one new field `syntax_auto_detect bool` (002-syntax-highlight)
 
 ## Project Structure
 
@@ -74,7 +74,7 @@ Arch/Manjaro: `sudo pacman -S gtk4 gtksourceview5 pkg-config`
 Ubuntu 24.04:  `sudo apt install libgtk-4-dev libgtksourceview-5-dev pkg-config`
 
 ## Recent Changes
-
+- 002-syntax-highlight: Added Go 1.22+ (`CGO_ENABLED=1`, `CC=clang`)
 - 001-boop-core: Initial goop application (GTK4, goja, Boop script compatibility)
 
 <!-- MANUAL ADDITIONS START -->

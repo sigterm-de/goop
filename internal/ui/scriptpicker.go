@@ -26,9 +26,13 @@ type ScriptPicker struct {
 	searchEntry *gtk.SearchEntry
 	allScripts  []scripts.Script
 	onHide      func()
+	postScript  func() // called after every successful script execution
 }
 
 // NewScriptPicker creates the script picker panel.
+// postScript, if non-nil, is called on the GTK main thread after every
+// successful script execution — use it to run syntax detection or other
+// post-transform work without coupling ScriptPicker to those details.
 func NewScriptPicker(
 	lib scripts.Library,
 	exec engine.Executor,
@@ -36,6 +40,7 @@ func NewScriptPicker(
 	status *StatusBar,
 	logPath string,
 	onHide func(),
+	postScript func(),
 ) *ScriptPicker {
 	sp := &ScriptPicker{
 		library:    lib,
@@ -45,6 +50,7 @@ func NewScriptPicker(
 		logPath:    logPath,
 		allScripts: lib.All(),
 		onHide:     onHide,
+		postScript: postScript,
 	}
 
 	// ── Search entry ─────────────────────────────────────────────────────────
@@ -367,5 +373,9 @@ func (sp *ScriptPicker) applyResult(result engine.ExecutionResult) {
 		sp.status.ShowSuccess(result.InfoMessage)
 	} else {
 		sp.status.ShowSuccess("✓ " + result.ScriptName + " applied")
+	}
+
+	if sp.postScript != nil {
+		sp.postScript()
 	}
 }

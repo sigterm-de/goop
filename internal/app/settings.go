@@ -159,6 +159,10 @@ func ShowSettingsDialog(
 		}
 	})
 
+	syntaxDetectCheck := gtk.NewCheckButtonWithLabel("Auto-detect syntax highlighting")
+	syntaxDetectCheck.SetActive(prefs.SyntaxAutoDetect)
+	syntaxDetectCheck.SetTooltipText("Automatically apply syntax highlighting after running a script")
+
 	schemeFollowCheck := gtk.NewCheckButtonWithLabel("Follow system dark/light")
 	schemeFollowCheck.SetActive(prefs.EditorSchemeFollowSystem)
 
@@ -189,12 +193,14 @@ func ShowSettingsDialog(
 			p.EditorSchemeDark = darkIDs[idx]
 		}
 		p.ScriptPickerShortcut = currentAccel
+		p.SyntaxAutoDetect = syntaxDetectCheck.Active()
 		prefs = p
 		onApply(p)
 	}
 
 	fontBtn.NotifyProperty("font-desc", func() { applyChanges() })
 	monoCheck.ConnectToggled(func() { applyChanges() })
+	syntaxDetectCheck.ConnectToggled(func() { applyChanges() })
 	schemeFollowCheck.ConnectToggled(func() { applyChanges() })
 	lightDrop.NotifyProperty("selected", func() { applyChanges() })
 	darkDrop.NotifyProperty("selected", func() { applyChanges() })
@@ -288,6 +294,7 @@ func ShowSettingsDialog(
 	attachLabel("Editor")
 	attachRow("Font:", fontBtn)
 	attachSpan(monoCheck)
+	attachSpan(syntaxDetectCheck)
 	attachSep()
 	attachLabel("Colour scheme")
 	attachSpan(schemeFollowCheck)

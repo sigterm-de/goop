@@ -123,3 +123,25 @@ func (e *Editor) ApplyScheme(schemeID string) {
 		e.buffer.SetStyleScheme(scheme)
 	}
 }
+
+// SetLanguage enables GtkSourceView syntax highlighting for the given language
+// ID (e.g. "json", "xml", "yaml", "html"). If the language definition is not
+// found on the system the buffer's current highlighting is left unchanged.
+// An empty langID is treated as ClearLanguage.
+// Must be called on the GTK main thread.
+func (e *Editor) SetLanguage(langID string) {
+	if langID == "" {
+		e.ClearLanguage()
+		return
+	}
+	mgr := gtksource.LanguageManagerGetDefault()
+	if lang := mgr.Language(langID); lang != nil {
+		e.buffer.SetLanguage(lang)
+	}
+}
+
+// ClearLanguage removes all syntax highlighting from the editor buffer.
+// Safe to call when no language is active. Must be called on the GTK main thread.
+func (e *Editor) ClearLanguage() {
+	e.buffer.SetLanguage(nil)
+}

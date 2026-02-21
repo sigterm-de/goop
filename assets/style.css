@@ -85,3 +85,10 @@
     opacity: 0.5;
     padding: 16px;
 }
+
+/* Syntax zone: right-aligned detected-language indicator in the status bar.
+   Uses a muted appearance so it never competes with notification messages. */
+.statusbar-syntax {
+    font-size: 0.8em;
+    opacity: 0.6;
+}

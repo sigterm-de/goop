@@ -47,7 +47,35 @@ func NewApplicationWindow(
 	w.revealer.SetHAlign(gtk.AlignEnd)
 	w.revealer.SetVExpand(true)
 
-	w.picker = ui.NewScriptPicker(lib, exec, w.editor, w.status, logPath, w.HideScriptPicker)
+	// postScript runs on the GTK main thread after every successful script
+	// execution. It re-runs syntax detection and updates the editor and the
+	// status bar syntax zone accordingly.
+	postScript := func() {
+		if !w.prefs.SyntaxAutoDetect {
+			return
+		}
+		text := w.editor.GetFullText()
+		langID, langName := ui.Detect(text)
+		if langID != "" {
+			w.editor.SetLanguage(langID)
+			w.status.SetSyntaxLanguage(langName)
+		} else {
+			w.editor.ClearLanguage()
+			w.status.ClearSyntaxLanguage()
+		}
+	}
+
+	w.picker = ui.NewScriptPicker(lib, exec, w.editor, w.status, logPath, w.HideScriptPicker, postScript)
+
+	// Clear syntax highlighting and the status bar syntax zone whenever the
+	// editor buffer is fully emptied — prevents stale highlighting from
+	// persisting after the user deletes all content.
+	w.editor.View.Buffer().ConnectChanged(func() {
+		if w.editor.GetFullText() == "" {
+			w.editor.ClearLanguage()
+			w.status.ClearSyntaxLanguage()
+		}
+	})
 
 	pickerFrame := gtk.NewFrame("")
 	pickerFrame.SetChild(w.picker.Box)

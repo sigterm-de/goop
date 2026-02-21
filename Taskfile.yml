@@ -100,7 +100,7 @@ tasks:
 
   install:
     desc: Install binary, desktop file and icon to ~/.local
-    deps: [build]
+    deps: [build:release]
     cmds:
       - install -Dm755 {{.BINARY}} ~/.local/bin/{{.BINARY}}
       - install -Dm644 .desktop/goop.desktop ~/.local/share/applications/goop.desktop

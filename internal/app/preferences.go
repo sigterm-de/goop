@@ -24,6 +24,10 @@ type AppPreferences struct {
 	// ScriptPickerShortcut is the GTK accelerator string used to toggle the
 	// script picker panel (e.g. "<Primary>slash").
 	ScriptPickerShortcut string `json:"script_picker_shortcut"`
+
+	// SyntaxAutoDetect controls whether the editor automatically detects and
+	// applies syntax highlighting after each successful script execution.
+	SyntaxAutoDetect bool `json:"syntax_auto_detect"`
 }
 
 func defaultPreferences() AppPreferences {
@@ -34,6 +38,7 @@ func defaultPreferences() AppPreferences {
 		EditorSchemeLight:        "classic",
 		EditorSchemeDark:         "oblivion",
 		ScriptPickerShortcut:     "<Primary>slash",
+		SyntaxAutoDetect:         true,
 	}
 }
 

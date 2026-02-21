@@ -13,22 +13,33 @@ const defaultIdleText = "Press Ctrl+/ for commands"
 const revertDelay = 5000
 
 // StatusBar displays transformation results and the idle usage hint at the
-// bottom of the application window.
+// bottom of the application window. It contains two independent zones:
+//   - notification zone (left): transient event messages that auto-revert
+//   - syntax zone (right): persistent detected-language indicator
 type StatusBar struct {
-	Box      *gtk.Box
-	label    *gtk.Label
-	timerTag glib.SourceHandle // 0 when no timer is pending
-	idleText string
-	isIdle   bool
+	Box         *gtk.Box
+	label       *gtk.Label        // notification zone
+	syntaxLabel *gtk.Label        // syntax zone — right-aligned, empty when inactive
+	timerTag    glib.SourceHandle // 0 when no timer is pending
+	idleText    string
+	isIdle      bool
 }
 
 // NewStatusBar creates a status bar widget that is always visible and shows the
-// usage hint by default.
+// usage hint by default. The bar has two independent zones: a left notification
+// zone and a right syntax-language indicator zone.
 func NewStatusBar() *StatusBar {
+	// Notification zone — left-aligned, expands to fill available space.
 	label := gtk.NewLabel(defaultIdleText)
 	label.SetXAlign(0)
 	label.SetEllipsize(pango.EllipsizeEnd)
 	label.SetHExpand(true)
+
+	// Syntax zone — right-aligned, shows the detected language name when active.
+	syntaxLabel := gtk.NewLabel("")
+	syntaxLabel.SetXAlign(1)
+	syntaxLabel.SetMarginStart(8)
+	syntaxLabel.AddCSSClass("statusbar-syntax")
 
 	box := gtk.NewBox(gtk.OrientationHorizontal, 0)
 	box.AddCSSClass("statusbar")
@@ -38,8 +49,27 @@ func NewStatusBar() *StatusBar {
 	box.SetMarginStart(12)
 	box.SetMarginEnd(12)
 	box.Append(label)
+	box.Append(syntaxLabel)
 
-	return &StatusBar{Box: box, label: label, idleText: defaultIdleText, isIdle: true}
+	return &StatusBar{
+		Box:         box,
+		label:       label,
+		syntaxLabel: syntaxLabel,
+		idleText:    defaultIdleText,
+		isIdle:      true,
+	}
+}
+
+// SetSyntaxLanguage shows the detected language name in the right-aligned
+// syntax zone. Calling this never affects the notification zone.
+func (s *StatusBar) SetSyntaxLanguage(name string) {
+	s.syntaxLabel.SetText(name)
+}
+
+// ClearSyntaxLanguage removes any language indicator from the syntax zone.
+// Safe to call when no language is active.
+func (s *StatusBar) ClearSyntaxLanguage() {
+	s.syntaxLabel.SetText("")
 }
 
 // SetIdleHint updates the idle-state hint text. If the bar is currently
