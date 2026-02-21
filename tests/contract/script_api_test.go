@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"codeberg.org/daniel-ciaglia/goop/internal/engine"
+	"codeberg.org/sigterm-de/goop/internal/engine"
 )
 
 // newExec returns the production Executor under test.

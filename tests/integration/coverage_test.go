@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"codeberg.org/daniel-ciaglia/goop/assets"
-	"codeberg.org/daniel-ciaglia/goop/internal/logging"
-	"codeberg.org/daniel-ciaglia/goop/internal/scripts"
+	"codeberg.org/sigterm-de/goop/assets"
+	"codeberg.org/sigterm-de/goop/internal/logging"
+	"codeberg.org/sigterm-de/goop/internal/scripts"
 )
 
 // TestLibraryLen verifies that ScriptLibrary.Len() returns the count.

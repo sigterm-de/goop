@@ -3,9 +3,9 @@ package ui
 import (
 	"context"
 
-	"codeberg.org/daniel-ciaglia/goop/internal/engine"
-	"codeberg.org/daniel-ciaglia/goop/internal/logging"
-	"codeberg.org/daniel-ciaglia/goop/internal/scripts"
+	"codeberg.org/sigterm-de/goop/internal/engine"
+	"codeberg.org/sigterm-de/goop/internal/logging"
+	"codeberg.org/sigterm-de/goop/internal/scripts"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"

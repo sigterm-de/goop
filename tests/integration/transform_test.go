@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"codeberg.org/daniel-ciaglia/goop/assets"
-	"codeberg.org/daniel-ciaglia/goop/internal/engine"
-	"codeberg.org/daniel-ciaglia/goop/internal/scripts"
+	"codeberg.org/sigterm-de/goop/assets"
+	"codeberg.org/sigterm-de/goop/internal/engine"
+	"codeberg.org/sigterm-de/goop/internal/scripts"
 )
 
 // loadScript returns the Content of the first script with the given name from

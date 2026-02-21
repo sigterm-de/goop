@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"codeberg.org/daniel-ciaglia/goop/internal/logging"
+	"codeberg.org/sigterm-de/goop/internal/logging"
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
 )

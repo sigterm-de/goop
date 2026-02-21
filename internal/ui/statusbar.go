@@ -6,7 +6,7 @@ import (
 	"github.com/diamondburned/gotk4/pkg/pango"
 )
 
-const statusIdleText = "Press Ctrl+/ for commands"
+const defaultIdleText = "Press Ctrl+/ for commands"
 
 // revertDelay is how long (ms) a status message stays before reverting to the
 // idle hint.
@@ -18,12 +18,14 @@ type StatusBar struct {
 	Box      *gtk.Box
 	label    *gtk.Label
 	timerTag glib.SourceHandle // 0 when no timer is pending
+	idleText string
+	isIdle   bool
 }
 
 // NewStatusBar creates a status bar widget that is always visible and shows the
 // usage hint by default.
 func NewStatusBar() *StatusBar {
-	label := gtk.NewLabel(statusIdleText)
+	label := gtk.NewLabel(defaultIdleText)
 	label.SetXAlign(0)
 	label.SetEllipsize(pango.EllipsizeEnd)
 	label.SetHExpand(true)
@@ -37,12 +39,22 @@ func NewStatusBar() *StatusBar {
 	box.SetMarginEnd(12)
 	box.Append(label)
 
-	return &StatusBar{Box: box, label: label}
+	return &StatusBar{Box: box, label: label, idleText: defaultIdleText, isIdle: true}
+}
+
+// SetIdleHint updates the idle-state hint text. If the bar is currently
+// showing the idle hint it refreshes immediately.
+func (s *StatusBar) SetIdleHint(text string) {
+	s.idleText = text
+	if s.isIdle {
+		s.label.SetText(text)
+	}
 }
 
 // ShowError displays an error message and schedules a revert to the idle hint.
 func (s *StatusBar) ShowError(message, logPath string) {
 	s.cancelTimer()
+	s.isIdle = false
 	text := message
 	if logPath != "" {
 		text += "  (log: " + logPath + ")"
@@ -58,6 +70,7 @@ func (s *StatusBar) ShowError(message, logPath string) {
 // hint. The caller provides the full display text.
 func (s *StatusBar) ShowSuccess(message string) {
 	s.cancelTimer()
+	s.isIdle = false
 	s.label.SetText(message)
 	s.Box.RemoveCSSClass("statusbar-error")
 	s.Box.RemoveCSSClass("statusbar-idle")
@@ -87,7 +100,8 @@ func (s *StatusBar) cancelTimer() {
 
 func (s *StatusBar) revertToIdle() {
 	s.timerTag = 0
-	s.label.SetText(statusIdleText)
+	s.isIdle = true
+	s.label.SetText(s.idleText)
 	s.Box.RemoveCSSClass("statusbar-error")
 	s.Box.RemoveCSSClass("statusbar-success")
 	s.Box.AddCSSClass("statusbar-idle")

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"codeberg.org/daniel-ciaglia/goop/internal/logging"
+	"codeberg.org/sigterm-de/goop/internal/logging"
 )
 
 // LoadResult is the combined outcome of loading built-in and user scripts.

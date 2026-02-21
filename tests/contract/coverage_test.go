@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"codeberg.org/daniel-ciaglia/goop/internal/engine"
+	"codeberg.org/sigterm-de/goop/internal/engine"
 )
 
 // TestAtobDecodeSuccess verifies atob() decodes a valid base64 string.

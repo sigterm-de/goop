@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"codeberg.org/daniel-ciaglia/goop/assets"
-	"codeberg.org/daniel-ciaglia/goop/internal/engine"
-	"codeberg.org/daniel-ciaglia/goop/internal/logging"
-	"codeberg.org/daniel-ciaglia/goop/internal/scripts"
+	"codeberg.org/sigterm-de/goop/assets"
+	"codeberg.org/sigterm-de/goop/internal/engine"
+	"codeberg.org/sigterm-de/goop/internal/logging"
+	"codeberg.org/sigterm-de/goop/internal/scripts"
 	"github.com/adrg/xdg"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
@@ -72,7 +72,7 @@ func activate(app *gtk.Application, appVersion string) {
 	// ── Window ────────────────────────────────────────────────────────────────
 	win := NewApplicationWindow(app, lib, exec, logPath, prefs)
 
-	app.SetAccelsForAction("win.toggle-picker", []string{"<Primary>slash"})
+	app.SetAccelsForAction("win.toggle-picker", []string{prefs.ScriptPickerShortcut})
 
 	win.Win.Present()
 }

@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"codeberg.org/daniel-ciaglia/goop/assets"
+	"codeberg.org/sigterm-de/goop/assets"
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
 	"gopkg.in/yaml.v3"

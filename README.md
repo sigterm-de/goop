@@ -6,6 +6,17 @@ in seconds.
 
 Built with Go and GTK4. Single binary, no Electron, no runtime.
 
+## Heritage
+
+- created by [Ivan Mathy](https://github.com/IvanMathy/) as [Boop](https://github.com/IvanMathy/Boop) in 2019 (macOS, Swift)
+- re-implemented by [Zoey Sheffield](https://github.com/zoeyfyi) as [Boop-GTK](https://github.com/zoeyfyi/Boop-GTK) in 2020 (*nix, Rust)
+- re-imagined by [Daniel Ciaglia](https://www.linkedin.com/in/danielciaglia/) as [goop](https://codeberg.org/sigterm-de/goop) in 2026 (*nix, Golang)
+  - implemented by [Claude Code](https://github.com/anthropics/claude-code) using [GitHub/spec-kit](https://github.com/github/spec-kit)
+
+![](goop.webp)
+
+---
+
 ## Features
 
 - 70+ built-in text transformation scripts (URL encode/decode, Base64, JSON format,
@@ -15,10 +26,6 @@ Built with Go and GTK4. Single binary, no Electron, no runtime.
 - Full compatibility with the upstream Boop script ecosystem (`@boop/` modules)
 - Undo support
 - XDG-compliant paths (config, logs)
-
-## System Requirements
-
-goop is distributed as a single compiled binary. The only runtime dependencies are the GTK4 and GtkSourceView system libraries.
 
 ## Required Libraries
 
@@ -33,29 +40,29 @@ goop is distributed as a single compiled binary. The only runtime dependencies a
 - User-provided scripts are loaded from `~/.config/goop/scripts/` and also
   require no additional dependencies beyond what the scripts themselves use.
 
-## Installation
-
-Download a release archive from the [releases page](https://codeberg.org/daniel-ciaglia/goop/releases), extract and place the `goop` binary somewhere on your `$PATH`:
-
-```bash
-unzip goop_<version>_linux_amd64.zip
-sudo install -m755 goop .local/bin/
-```
-
-To integrate with your desktop launcher, copy the `.desktop` file:
-
-```bash
-sudo cp .desktop/goop.desktop .local/share/applications/
-```
-
 ## Build from Source
 
-**Prerequisites:** Go 1.24+, Clang, GTK4 and GtkSourceView5 development headers.
+**Prerequisites:** Go 1.26+, Clang, GTK4 and GtkSourceView5 development headers.
+
+Make sure to set `CC=clang` as GCC 15 has issues (at least for me)
 
 ```bash
-git clone https://codeberg.org/daniel-ciaglia/goop
+git clone https://codeberg.org/sigterm-de/goop
 cd goop
 CGO_ENABLED=1 CC=clang go build -o goop ./cmd/goop
+```
+
+Use the provided [Taskfile](https://taskfile.dev/)
+
+```shell
+$> task
+
+task: [default] task --list
+task: Available tasks for this project:
+* build:               Compile the binary
+* check:               Run fmt:check, fix, vet, lint and test (full pre-commit gate)
+ [...]
+* test:coverage:       Run tests and print per-function coverage (gate ≥80%)
 ```
 
 ## Usage
@@ -68,7 +75,9 @@ CGO_ENABLED=1 CC=clang go build -o goop ./cmd/goop
 6. Press `Ctrl+Z` to undo the last transformation
 7. Press `Escape` to dismiss the script picker without running anything
 
-## Custom Scripts
+# Custom Scripts
+
+Check out Ivan's documentation over at [Boop/Documentation](https://github.com/IvanMathy/Boop/blob/main/Boop/Documentation/CustomScripts.md)
 
 Place `.js` files in `~/.config/goop/scripts/`. Scripts must begin with a
 metadata header:
@@ -122,7 +131,6 @@ Community-compatible modules available via `require()`:
 
 The `Scripts/` directory contains community-contributed scripts from the upstream Boop
 project. See [Scripts/README.md](Scripts/README.md) for details.
-
 ## License
 
 See [LICENSE](LICENSE).

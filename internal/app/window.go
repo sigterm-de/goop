@@ -1,10 +1,10 @@
 package app
 
 import (
-	"codeberg.org/daniel-ciaglia/goop/internal/engine"
-	"codeberg.org/daniel-ciaglia/goop/internal/logging"
-	"codeberg.org/daniel-ciaglia/goop/internal/scripts"
-	"codeberg.org/daniel-ciaglia/goop/internal/ui"
+	"codeberg.org/sigterm-de/goop/internal/engine"
+	"codeberg.org/sigterm-de/goop/internal/logging"
+	"codeberg.org/sigterm-de/goop/internal/scripts"
+	"codeberg.org/sigterm-de/goop/internal/ui"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
@@ -13,13 +13,15 @@ import (
 
 // ApplicationWindow is the main window of goop.
 type ApplicationWindow struct {
-	Win      *gtk.ApplicationWindow
-	editor   *ui.Editor
-	picker   *ui.ScriptPicker
-	status   *ui.StatusBar
-	revealer *gtk.Revealer
-	LogPath  string
-	prefs    AppPreferences
+	Win        *gtk.ApplicationWindow
+	editor     *ui.Editor
+	picker     *ui.ScriptPicker
+	status     *ui.StatusBar
+	revealer   *gtk.Revealer
+	LogPath    string
+	prefs      AppPreferences
+	app        *gtk.Application
+	scriptsBtn *gtk.Button
 }
 
 // NewApplicationWindow builds the complete UI hierarchy and wires keyboard
@@ -31,7 +33,7 @@ func NewApplicationWindow(
 	logPath string,
 	prefs AppPreferences,
 ) *ApplicationWindow {
-	w := &ApplicationWindow{LogPath: logPath, prefs: prefs}
+	w := &ApplicationWindow{LogPath: logPath, prefs: prefs, app: app}
 
 	// ── Core widgets ─────────────────────────────────────────────────────────
 	w.editor = ui.NewEditor()
@@ -74,22 +76,31 @@ func NewApplicationWindow(
 	header := gtk.NewHeaderBar()
 	header.SetShowTitleButtons(true)
 
-	scriptsBtn := gtk.NewButton()
-	scriptsBtn.SetIconName("system-search-symbolic")
-	scriptsBtn.SetTooltipText("Scripts (Ctrl+/)")
-	scriptsBtn.AddCSSClass("flat")
-	scriptsBtn.ConnectClicked(func() { w.ToggleScriptPicker() })
-	header.PackEnd(scriptsBtn)
+	w.scriptsBtn = gtk.NewButton()
+	w.scriptsBtn.SetIconName("system-search-symbolic")
+	w.scriptsBtn.AddCSSClass("flat")
+	w.scriptsBtn.ConnectClicked(func() { w.ToggleScriptPicker() })
+	header.PackEnd(w.scriptsBtn)
 
 	settingsBtn := gtk.NewButton()
 	settingsBtn.SetIconName("preferences-system-symbolic")
 	settingsBtn.SetTooltipText("Preferences")
 	settingsBtn.AddCSSClass("flat")
 	settingsBtn.ConnectClicked(func() {
+		// Sync the editor scheme with the current system state before opening,
+		// in case the dark/light toggle happened while the app was running but
+		// the GtkSettings notification was not delivered (e.g. portal delay).
+		if w.prefs.EditorSchemeFollowSystem {
+			w.editor.ApplyScheme(resolveActiveScheme(w.prefs))
+		}
 		ShowSettingsDialog(w.Win, w.prefs, func(newPrefs AppPreferences) {
+			if newPrefs.ScriptPickerShortcut != w.prefs.ScriptPickerShortcut {
+				w.app.SetAccelsForAction("win.toggle-picker", []string{newPrefs.ScriptPickerShortcut})
+			}
 			w.prefs = newPrefs
 			applyPreferences(newPrefs)
 			w.editor.ApplyScheme(resolveActiveScheme(newPrefs))
+			w.updateShortcutHints(newPrefs)
 			if err := SavePreferences(newPrefs); err != nil {
 				logging.Log(logging.WARN, "", "preferences: "+err.Error())
 			}
@@ -100,11 +111,32 @@ func NewApplicationWindow(
 	w.Win.SetTitlebar(header)
 
 	// ── Watch system dark/light mode ─────────────────────────────────────────
-	// Always register the watch; only act when the preference is enabled.
-	if gtkSettings := gtk.SettingsGetDefault(); gtkSettings != nil {
-		gtkSettings.NotifyProperty("gtk-application-prefer-dark-theme", func() {
-			if w.prefs.EditorSchemeFollowSystem {
-				w.editor.ApplyScheme(resolveActiveScheme(w.prefs))
+	applySchemeIfFollowing := func() {
+		if w.prefs.EditorSchemeFollowSystem {
+			w.editor.ApplyScheme(resolveActiveScheme(w.prefs))
+		}
+	}
+
+	// GNOME: subscribe directly to org.gnome.desktop.interface color-scheme.
+	// This fires reliably when the user or a script changes the GSettings key,
+	// regardless of portal or GdkDisplay indirection.
+	if gnomeInterfaceSettings != nil {
+		gnomeInterfaceSettings.ConnectChanged(func(key string) {
+			if key == "color-scheme" {
+				applySchemeIfFollowing()
+			}
+		})
+	}
+
+	// KDE / other DEs: GdkDisplay::setting-changed covers theme-name switches
+	// (e.g. Breeze → Breeze-Dark) and portal-based dark-mode changes that
+	// don't go through org.gnome.desktop.interface.
+	if display := gdk.DisplayGetDefault(); display != nil {
+		display.ConnectSettingChanged(func(setting string) {
+			switch setting {
+			case "gtk-application-prefer-dark-theme", "gtk-theme-name":
+				// Defer so GtkSettings has already applied the new value.
+				glib.IdleAdd(applySchemeIfFollowing)
 			}
 		})
 	}
@@ -113,7 +145,28 @@ func NewApplicationWindow(
 	w.registerActions()
 	w.setupKeyboard()
 
+	// Apply shortcut-derived hints (tooltip + status bar) from stored prefs.
+	w.updateShortcutHints(prefs)
+
 	return w
+}
+
+// accelToLabel converts a GTK accelerator string (e.g. "<Primary>slash") into
+// a human-readable label (e.g. "Ctrl+/").
+func accelToLabel(accel string) string {
+	key, mods, ok := gtk.AcceleratorParse(accel)
+	if !ok || key == 0 {
+		return accel
+	}
+	return gtk.AcceleratorGetLabel(key, mods)
+}
+
+// updateShortcutHints refreshes the scripts-button tooltip and the status-bar
+// idle hint to reflect the currently configured shortcut.
+func (w *ApplicationWindow) updateShortcutHints(prefs AppPreferences) {
+	label := accelToLabel(prefs.ScriptPickerShortcut)
+	w.scriptsBtn.SetTooltipText("Scripts (" + label + ")")
+	w.status.SetIdleHint("Press " + label + " for commands")
 }
 
 // ShowScriptPicker reveals the picker panel and focuses the search entry.

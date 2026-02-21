@@ -1,4 +1,4 @@
-module codeberg.org/daniel-ciaglia/goop
+module codeberg.org/sigterm-de/goop
 
 go 1.26.0
 

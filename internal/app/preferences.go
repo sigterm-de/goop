@@ -20,6 +20,10 @@ type AppPreferences struct {
 	EditorSchemeFollowSystem bool   `json:"editor_scheme_follow_system"`
 	EditorSchemeLight        string `json:"editor_scheme_light"`
 	EditorSchemeDark         string `json:"editor_scheme_dark"`
+
+	// ScriptPickerShortcut is the GTK accelerator string used to toggle the
+	// script picker panel (e.g. "<Primary>slash").
+	ScriptPickerShortcut string `json:"script_picker_shortcut"`
 }
 
 func defaultPreferences() AppPreferences {
@@ -29,6 +33,7 @@ func defaultPreferences() AppPreferences {
 		EditorSchemeFollowSystem: true,
 		EditorSchemeLight:        "classic",
 		EditorSchemeDark:         "oblivion",
+		ScriptPickerShortcut:     "<Primary>slash",
 	}
 }
 

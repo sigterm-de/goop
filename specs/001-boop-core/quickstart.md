@@ -45,7 +45,7 @@ sudo dnf install -y \
 
 ```bash
 # Clone
-git clone https://codeberg.org/daniel-ciaglia/goop.git
+git clone https://codeberg.org/sigterm-de/goop.git
 cd goop
 
 # Install Go dependencies (CGo required)

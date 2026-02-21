@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"codeberg.org/daniel-ciaglia/goop/assets"
-	"codeberg.org/daniel-ciaglia/goop/internal/scripts"
+	"codeberg.org/sigterm-de/goop/assets"
+	"codeberg.org/sigterm-de/goop/internal/scripts"
 )
 
 func newLoader() scripts.Loader {

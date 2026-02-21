@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	coreglib "github.com/diamondburned/gotk4/pkg/core/glib"
+	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	"github.com/diamondburned/gotk4/pkg/pango"
 	gtksource "libdb.so/gotk4-sourceview/pkg/gtksource/v5"
@@ -86,6 +87,22 @@ func buildSchemeDropDown(currentID string) (*gtk.DropDown, []string) {
 	return drop, ids
 }
 
+// isModifierKey reports whether keyval is a bare modifier key (Ctrl, Shift,
+// Alt, Super, …) that should be ignored during shortcut capture.
+func isModifierKey(keyval uint) bool {
+	switch keyval {
+	case gdk.KEY_Control_L, gdk.KEY_Control_R,
+		gdk.KEY_Shift_L, gdk.KEY_Shift_R,
+		gdk.KEY_Alt_L, gdk.KEY_Alt_R,
+		gdk.KEY_Super_L, gdk.KEY_Super_R,
+		gdk.KEY_Meta_L, gdk.KEY_Meta_R,
+		gdk.KEY_Hyper_L, gdk.KEY_Hyper_R,
+		gdk.KEY_ISO_Level3_Shift:
+		return true
+	}
+	return false
+}
+
 // monospaceFontFilter returns a Filter that passes only monospace font
 // families. Pass nil to FontDialog.SetFilter to clear it.
 //
@@ -148,6 +165,15 @@ func ShowSettingsDialog(
 	lightDrop, lightIDs := buildSchemeDropDown(prefs.EditorSchemeLight)
 	darkDrop, darkIDs := buildSchemeDropDown(prefs.EditorSchemeDark)
 
+	// ── Keyboard shortcut capture ─────────────────────────────────────────────
+	currentAccel := prefs.ScriptPickerShortcut
+	capturing := false
+
+	shortcutBtn := gtk.NewButton()
+	shortcutBtn.SetLabel(accelToLabel(currentAccel))
+	shortcutBtn.SetHExpand(true)
+	shortcutBtn.SetTooltipText("Click, then press a key combination")
+
 	// ── Apply helper ─────────────────────────────────────────────────────────
 	applyChanges := func() {
 		p := prefs
@@ -162,6 +188,7 @@ func ShowSettingsDialog(
 		if idx := darkDrop.Selected(); int(idx) < len(darkIDs) {
 			p.EditorSchemeDark = darkIDs[idx]
 		}
+		p.ScriptPickerShortcut = currentAccel
 		prefs = p
 		onApply(p)
 	}
@@ -171,6 +198,49 @@ func ShowSettingsDialog(
 	schemeFollowCheck.ConnectToggled(func() { applyChanges() })
 	lightDrop.NotifyProperty("selected", func() { applyChanges() })
 	darkDrop.NotifyProperty("selected", func() { applyChanges() })
+
+	// Key capture: listen on the settings window for keypresses when active.
+	keyCtrl := gtk.NewEventControllerKey()
+	keyCtrl.SetPropagationPhase(gtk.PhaseCapture)
+	keyCtrl.ConnectKeyPressed(func(keyval, _ uint, state gdk.ModifierType) bool {
+		if !capturing {
+			return false
+		}
+		if keyval == gdk.KEY_Escape {
+			shortcutBtn.SetLabel(accelToLabel(currentAccel))
+			capturing = false
+			return true
+		}
+		if isModifierKey(keyval) {
+			return false // wait for a non-modifier key
+		}
+		state &= gtk.AcceleratorGetDefaultModMask()
+		accel := gtk.AcceleratorName(keyval, state)
+		if accel == "" {
+			return false
+		}
+		currentAccel = accel
+		shortcutBtn.SetLabel(gtk.AcceleratorGetLabel(keyval, state))
+		capturing = false
+		applyChanges()
+		return true
+	})
+
+	// Cancel capture when the button loses keyboard focus.
+	focusCtrl := gtk.NewEventControllerFocus()
+	focusCtrl.ConnectLeave(func() {
+		if capturing {
+			capturing = false
+			shortcutBtn.SetLabel(accelToLabel(currentAccel))
+		}
+	})
+	shortcutBtn.AddController(focusCtrl)
+
+	shortcutBtn.ConnectClicked(func() {
+		capturing = true
+		shortcutBtn.SetLabel("Press a key combination…")
+		shortcutBtn.GrabFocus()
+	})
 
 	// ── Layout ───────────────────────────────────────────────────────────────
 	grid := gtk.NewGrid()
@@ -211,6 +281,10 @@ func ShowSettingsDialog(
 		row++
 	}
 
+	// Register the key capture controller on the settings window so it
+	// intercepts key events regardless of which widget has focus.
+	win.AddController(keyCtrl)
+
 	attachLabel("Editor")
 	attachRow("Font:", fontBtn)
 	attachSpan(monoCheck)
@@ -219,6 +293,9 @@ func ShowSettingsDialog(
 	attachSpan(schemeFollowCheck)
 	attachRow("Light scheme:", lightDrop)
 	attachRow("Dark scheme:", darkDrop)
+	attachSep()
+	attachLabel("Keyboard")
+	attachRow("Script picker:", shortcutBtn)
 
 	closeBtn := gtk.NewButtonWithLabel("Close")
 	closeBtn.SetHAlign(gtk.AlignEnd)
