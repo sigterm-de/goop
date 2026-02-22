@@ -1,8 +1,7 @@
 # goop
 
-A Linux-native re-implementation of [Boop](https://github.com/IvanMathy/Boop) — a
-text transformation tool for developers. Paste text, pick a script, and transform it
-in seconds.
+A Linux-native re-implementation of [Boop](https://github.com/IvanMathy/Boop), a text transformation tool for developers.
+Paste text, pick a script, and transform it in seconds.
 
 Built with Go and GTK4. Single binary, no Electron, no runtime.
 
@@ -22,10 +21,8 @@ Built with Go and GTK4. Single binary, no Electron, no runtime.
 - 70+ built-in text transformation scripts (URL encode/decode, Base64, JSON format,
   hashing, case conversion, sorting, and more)
 - Real-time fuzzy script search
-- User-provided custom scripts in `~/.config/goop/scripts/`
+- User-provided custom scripts in `~/.local/share/goop/scripts/`
 - Full compatibility with the upstream Boop script ecosystem (`@boop/` modules)
-- Undo support
-- XDG-compliant paths (config, logs)
 
 ## Required Libraries
 
@@ -37,7 +34,7 @@ Built with Go and GTK4. Single binary, no Electron, no runtime.
 ## Notes
 
 - The embedded Boop scripts require no external files or network access.
-- User-provided scripts are loaded from `~/.config/goop/scripts/` and also
+- User-provided scripts are loaded from `~/.local/share/goop/scripts/` and also
   require no additional dependencies beyond what the scripts themselves use.
 
 ## Build from Source
@@ -77,7 +74,7 @@ task: Available tasks for this project:
 
 # Custom Scripts
 
-Place `.js` files in `~/.config/goop/scripts/`. See
+Place `.js` files in `~/.local/share/goop/scripts/`. See
 [writing-scripts.md](writing-scripts.md) for the full guide, including
 the state API, available `@boop/` modules, and how CommonJS `require()` works in
 goop (an improvement over original Boop, which had no module system at all).

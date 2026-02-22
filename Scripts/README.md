@@ -1,5 +1,6 @@
-
 # Additional scripts
+
+_(folder copied from [upstream](https://github.com/IvanMathy/Boop/tree/main/Scripts))_
 
 This folder contains useful scripts not included in the default Boop library you might want to download. 
 

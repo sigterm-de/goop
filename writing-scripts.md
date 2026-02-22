@@ -1,6 +1,6 @@
 # Writing Scripts for goop
 
-Scripts are plain `.js` files placed in `~/.config/goop/scripts/`. goop picks them
+Scripts are plain `.js` files placed in `~/.local/share/goop/scripts/`. goop picks them
 up automatically — no restart required.
 
 ---
@@ -249,5 +249,7 @@ Most scripts from the [Boop script ecosystem](https://github.com/IvanMathy/Boop)
 work without modification. The main incompatibility is scripts that rely on
 JavaScriptCore-specific APIs not available in Goja (rare in practice).
 
-Scripts from the upstream community [Scripts/](../Scripts/) directory are
+Scripts from the upstream community [Scripts/](/Scripts/) directory are
 bundled with goop and work out of the box.
+
+Check also upstream's [script documentation](https://github.com/IvanMathy/Boop/tree/main/Boop/Documentation).

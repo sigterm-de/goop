@@ -14,7 +14,7 @@ const appName = "goop"
 // UserConfiguration holds runtime paths and settings resolved from the XDG
 // Base Directory specification.
 type UserConfiguration struct {
-	ScriptsDir    string        // ~/.config/goop/scripts/
+	ScriptsDir    string        // ~/.local/share/goop/scripts/
 	LogFilePath   string        // ~/.config/goop/goop.log
 	ScriptTimeout time.Duration // Hard JS execution timeout
 }
@@ -22,7 +22,7 @@ type UserConfiguration struct {
 // NewUserConfiguration resolves XDG paths, creates the scripts directory if
 // absent, and returns a ready-to-use configuration.
 func NewUserConfiguration() (UserConfiguration, error) {
-	scriptsDir := filepath.Join(xdg.ConfigHome, appName, "scripts")
+	scriptsDir := filepath.Join(xdg.DataHome, appName, "scripts")
 	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
 		return UserConfiguration{}, fmt.Errorf("config: create scripts dir: %w", err)
 	}
