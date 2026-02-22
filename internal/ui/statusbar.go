@@ -8,17 +8,20 @@ import (
 
 const defaultIdleText = "Press Ctrl+/ for commands"
 
-// revertDelay is how long (ms) a status message stays before reverting to the
-// idle hint.
-const revertDelay = 5000
+// successRevertDelay is how long (ms) a success message stays before reverting
+// to the idle hint. Error messages do NOT auto-revert — they stay until the
+// next user action so there is enough time to read and act on them.
+const successRevertDelay = 5000
 
 // StatusBar displays transformation results and the idle usage hint at the
-// bottom of the application window. It contains two independent zones:
+// bottom of the application window. It contains three independent zones:
 //   - notification zone (left): transient event messages that auto-revert
+//   - spinner (centre-right): animates while a script is executing
 //   - syntax zone (right): persistent detected-language indicator
 type StatusBar struct {
 	Box         *gtk.Box
 	label       *gtk.Label        // notification zone
+	spinner     *gtk.Spinner      // busy indicator
 	syntaxLabel *gtk.Label        // syntax zone — right-aligned, empty when inactive
 	timerTag    glib.SourceHandle // 0 when no timer is pending
 	idleText    string
@@ -26,14 +29,21 @@ type StatusBar struct {
 }
 
 // NewStatusBar creates a status bar widget that is always visible and shows the
-// usage hint by default. The bar has two independent zones: a left notification
-// zone and a right syntax-language indicator zone.
+// usage hint by default. The bar has three independent zones: a left
+// notification zone, a centre-right busy spinner, and a right syntax-language
+// indicator zone.
 func NewStatusBar() *StatusBar {
 	// Notification zone — left-aligned, expands to fill available space.
 	label := gtk.NewLabel(defaultIdleText)
 	label.SetXAlign(0)
 	label.SetEllipsize(pango.EllipsizeEnd)
 	label.SetHExpand(true)
+
+	// Busy spinner — hidden until SetBusy(true) is called.
+	spinner := gtk.NewSpinner()
+	spinner.SetMarginStart(6)
+	spinner.SetMarginEnd(4)
+	spinner.SetVisible(false)
 
 	// Syntax zone — right-aligned, shows the detected language name when active.
 	syntaxLabel := gtk.NewLabel("")
@@ -49,14 +59,29 @@ func NewStatusBar() *StatusBar {
 	box.SetMarginStart(12)
 	box.SetMarginEnd(12)
 	box.Append(label)
+	box.Append(spinner)
 	box.Append(syntaxLabel)
 
 	return &StatusBar{
 		Box:         box,
 		label:       label,
+		spinner:     spinner,
 		syntaxLabel: syntaxLabel,
 		idleText:    defaultIdleText,
 		isIdle:      true,
+	}
+}
+
+// SetBusy shows or hides the busy spinner. Call with true before launching a
+// script goroutine and with false inside the glib.IdleAdd callback that
+// delivers the result. Must be called on the GTK main thread.
+func (s *StatusBar) SetBusy(busy bool) {
+	if busy {
+		s.spinner.SetVisible(true)
+		s.spinner.Start()
+	} else {
+		s.spinner.Stop()
+		s.spinner.SetVisible(false)
 	}
 }
 
@@ -81,7 +106,9 @@ func (s *StatusBar) SetIdleHint(text string) {
 	}
 }
 
-// ShowError displays an error message and schedules a revert to the idle hint.
+// ShowError displays an error message. Unlike ShowSuccess, errors do NOT
+// auto-dismiss — they persist until the next call to ShowSuccess, Clear, or
+// SetBusy(false), giving the user enough time to read and act on them.
 func (s *StatusBar) ShowError(message, logPath string) {
 	s.cancelTimer()
 	s.isIdle = false
@@ -93,11 +120,11 @@ func (s *StatusBar) ShowError(message, logPath string) {
 	s.Box.RemoveCSSClass("statusbar-success")
 	s.Box.RemoveCSSClass("statusbar-idle")
 	s.Box.AddCSSClass("statusbar-error")
-	s.scheduleRevert()
+	// No scheduleRevert — errors are sticky.
 }
 
 // ShowSuccess displays a success message and schedules a revert to the idle
-// hint. The caller provides the full display text.
+// hint after successRevertDelay ms. The caller provides the full display text.
 func (s *StatusBar) ShowSuccess(message string) {
 	s.cancelTimer()
 	s.isIdle = false
@@ -108,14 +135,8 @@ func (s *StatusBar) ShowSuccess(message string) {
 	s.scheduleRevert()
 }
 
-// Clear immediately reverts the status bar to the idle hint.
-func (s *StatusBar) Clear() {
-	s.cancelTimer()
-	s.revertToIdle()
-}
-
 func (s *StatusBar) scheduleRevert() {
-	s.timerTag = glib.TimeoutAdd(revertDelay, func() bool {
+	s.timerTag = glib.TimeoutAdd(successRevertDelay, func() bool {
 		s.revertToIdle()
 		return false // SOURCE_REMOVE — do not repeat
 	})

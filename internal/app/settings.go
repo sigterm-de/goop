@@ -1,7 +1,9 @@
 package app
 
 import (
+	"fmt"
 	"sort"
+	"strconv"
 
 	coreglib "github.com/diamondburned/gotk4/pkg/core/glib"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
@@ -27,30 +29,9 @@ func pangoDescToCSS(descStr string) string {
 	if sizePoints <= 0 {
 		sizePoints = 12
 	}
-	return `textview.goop-editor { font-family: "` + family + `"; font-size: ` + formatPt(sizePoints) + `pt; }`
-}
-
-// formatPt formats a float to at most one decimal place, dropping the decimal
-// when it is zero (e.g. 12.0 → "12", 10.5 → "10.5").
-func formatPt(v float64) string {
-	i := int(v)
-	if float64(i) == v {
-		return itoa(i)
-	}
-	frac := int((v-float64(i))*10 + 0.5)
-	return itoa(i) + "." + itoa(frac)
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	buf := make([]byte, 0, 10)
-	for n > 0 {
-		buf = append([]byte{byte('0' + n%10)}, buf...)
-		n /= 10
-	}
-	return string(buf)
+	// Use strconv for correct, allocation-efficient float formatting.
+	sizePt := strconv.FormatFloat(sizePoints, 'f', -1, 64)
+	return fmt.Sprintf(`textview.goop-editor { font-family: %q; font-size: %spt; }`, family, sizePt)
 }
 
 // buildSchemeDropDown constructs a DropDown listing all available GtkSourceView
@@ -135,6 +116,7 @@ func ShowSettingsDialog(
 	win.SetModal(true)
 	win.SetDefaultSize(440, 0)
 	win.SetResizable(false)
+	win.SetDestroyWithParent(true)
 
 	// ── Editor ────────────────────────────────────────────────────────────────
 	fontDialog := gtk.NewFontDialog()
@@ -209,13 +191,19 @@ func ShowSettingsDialog(
 	keyCtrl := gtk.NewEventControllerKey()
 	keyCtrl.SetPropagationPhase(gtk.PhaseCapture)
 	keyCtrl.ConnectKeyPressed(func(keyval, _ uint, state gdk.ModifierType) bool {
+		if keyval == gdk.KEY_Escape {
+			if capturing {
+				// Cancel shortcut capture and restore previous label.
+				shortcutBtn.SetLabel(accelToLabel(currentAccel))
+				capturing = false
+			} else {
+				// Close the dialog.
+				win.Close()
+			}
+			return true
+		}
 		if !capturing {
 			return false
-		}
-		if keyval == gdk.KEY_Escape {
-			shortcutBtn.SetLabel(accelToLabel(currentAccel))
-			capturing = false
-			return true
 		}
 		if isModifierKey(keyval) {
 			return false // wait for a non-modifier key

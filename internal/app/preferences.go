@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/adrg/xdg"
+	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
 // AppPreferences holds persistent user-configurable settings.
@@ -60,7 +61,23 @@ func LoadPreferences() AppPreferences {
 	if err := json.Unmarshal(data, &prefs); err != nil {
 		return defaultPreferences()
 	}
+	sanitizePreferences(&prefs)
 	return prefs
+}
+
+// sanitizePreferences replaces any field that would cause silent misbehaviour
+// with its default value. Called after JSON unmarshal so that a hand-edited
+// preferences file cannot leave the application in a broken state.
+func sanitizePreferences(p *AppPreferences) {
+	def := defaultPreferences()
+	// An empty or unparseable shortcut makes the picker unreachable by keyboard.
+	if p.ScriptPickerShortcut == "" {
+		p.ScriptPickerShortcut = def.ScriptPickerShortcut
+	}
+	// Validate that GTK can actually parse the stored accelerator string.
+	if _, _, ok := gtk.AcceleratorParse(p.ScriptPickerShortcut); !ok {
+		p.ScriptPickerShortcut = def.ScriptPickerShortcut
+	}
 }
 
 // SavePreferences writes preferences to disk.

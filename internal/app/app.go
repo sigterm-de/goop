@@ -18,7 +18,7 @@ import (
 // Run initialises and runs the GTK application. It returns the exit code that
 // main() should pass to os.Exit.
 func Run(appVersion string) int {
-	app := gtk.NewApplication("org.codeberg.daniel_ciaglia.go_boop", gio.ApplicationFlagsNone)
+	app := gtk.NewApplication("org.codeberg.sigterm-de.goop", gio.ApplicationFlagsNone)
 	app.ConnectActivate(func() { activate(app, appVersion) })
 	return int(app.Run(os.Args))
 }
@@ -91,13 +91,42 @@ func setupAppIcon() string {
 }
 
 // showFatalError creates a minimal error dialog and quits the application.
+// The window has a Close button and responds to Escape so users can dismiss it.
 func showFatalError(app *gtk.Application, msg string) {
 	fmt.Fprintln(os.Stderr, "goop: fatal:", msg)
 
 	win := gtk.NewApplicationWindow(app)
+	win.SetDefaultSize(420, 0)
+	win.SetTitle("goop — fatal error")
+	win.SetResizable(false)
+
 	label := gtk.NewLabel(msg)
-	win.SetChild(label)
-	win.SetDefaultSize(400, 120)
-	win.SetTitle("goop — error")
+	label.SetWrap(true)
+	label.SetMarginTop(16)
+	label.SetMarginBottom(8)
+	label.SetMarginStart(16)
+	label.SetMarginEnd(16)
+
+	closeBtn := gtk.NewButtonWithLabel("Close")
+	closeBtn.SetHAlign(gtk.AlignCenter)
+	closeBtn.SetMarginBottom(16)
+	closeBtn.ConnectClicked(func() { app.Quit() })
+
+	// Close on Escape.
+	keyCtrl := gtk.NewEventControllerKey()
+	keyCtrl.SetPropagationPhase(gtk.PhaseCapture)
+	keyCtrl.ConnectKeyPressed(func(keyval, _ uint, _ gdk.ModifierType) bool {
+		if keyval == gdk.KEY_Escape {
+			app.Quit()
+			return true
+		}
+		return false
+	})
+	win.AddController(keyCtrl)
+
+	box := gtk.NewBox(gtk.OrientationVertical, 0)
+	box.Append(label)
+	box.Append(closeBtn)
+	win.SetChild(box)
 	win.Present()
 }

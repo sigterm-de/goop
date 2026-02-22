@@ -72,7 +72,7 @@ func NewApplicationWindow(
 	// editor buffer is fully emptied — prevents stale highlighting from
 	// persisting after the user deletes all content.
 	w.editor.View.Buffer().ConnectChanged(func() {
-		if w.editor.GetFullText() == "" {
+		if w.editor.View.Buffer().CharCount() == 0 {
 			w.editor.ClearLanguage()
 			w.status.ClearSyntaxLanguage()
 		}
@@ -243,19 +243,27 @@ func (w *ApplicationWindow) registerActions() {
 }
 
 func (w *ApplicationWindow) setupKeyboard() {
+	// Window-level capture controller: only handles Escape to close the picker.
+	// Ctrl+Z is NOT intercepted here — GtkSourceView's own shortcut controller
+	// handles it natively, giving full multi-level undo without any custom code.
 	ctrl := gtk.NewEventControllerKey()
 	ctrl.SetPropagationPhase(gtk.PhaseCapture)
 	ctrl.ConnectKeyPressed(func(keyval, keycode uint, state gdk.ModifierType) bool {
-		ctrlMask := gdk.ControlMask
 		if keyval == gdk.KEY_Escape && w.revealer.RevealChild() {
 			w.HideScriptPicker()
-			return true
-		}
-		if state&ctrlMask != 0 && (keyval == 'z' || keyval == 'Z') {
-			w.editor.Undo()
 			return true
 		}
 		return false
 	})
 	w.Win.AddController(ctrl)
+
+	// Show a status bar message whenever the native undo stack performs an undo
+	// or reaches the bottom of the stack (ConnectUndo fires for each undo step).
+	w.editor.View.Buffer().ConnectUndo(func() {
+		if w.editor.CanUndo() {
+			w.status.ShowSuccess("Undone")
+		} else {
+			w.status.ShowSuccess("Nothing more to undo")
+		}
+	})
 }

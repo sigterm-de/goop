@@ -62,6 +62,10 @@ tasks:
     desc: Run golangci-lint
     cmd: golangci-lint run --fix ./...
 
+  deadcode:
+    desc: Find unreachable functions (whole-program analysis including tests)
+    cmd: go tool deadcode -test ./cmd/goop ./tests/contract/... ./tests/integration/...
+
   fmt:
     desc: Format all Go source files
     cmd: gofmt -w .
@@ -90,12 +94,13 @@ tasks:
     cmd: go mod tidy
 
   check:
-    desc: Run fmt:check, fix, vet, lint and test (full pre-commit gate)
+    desc: Run fmt:check, fix, vet, lint, deadcode and test (full pre-commit gate)
     cmds:
       - task: fmt:check
       - task: fix
       - task: vet
       - task: lint
+      - task: deadcode
       - task: test
 
   install:
@@ -103,9 +108,9 @@ tasks:
     deps: [build:release]
     cmds:
       - install -Dm755 {{.BINARY}} ~/.local/bin/{{.BINARY}}
-      - install -Dm644 .desktop/goop.desktop ~/.local/share/applications/goop.desktop
-      - install -Dm644 assets/icons/goop.png ~/.local/share/icons/hicolor/256x256/apps/goop.png
-      - install -Dm644 assets/icons/goop-drop.svg ~/.local/share/icons/hicolor/scalable/apps/goop.svg
+      - install -Dm644 .desktop/org.codeberg.sigterm-de.goop.desktop ~/.local/share/applications/org.codeberg.sigterm-de.goop.desktop
+      - install -Dm644 assets/icons/goop.png ~/.local/share/icons/hicolor/256x256/apps/org.codeberg.sigterm-de.goop.png
+      - install -Dm644 assets/icons/goop-drop.svg ~/.local/share/icons/hicolor/scalable/apps/org.codeberg.sigterm-de.goop.svg
       - update-desktop-database ~/.local/share/applications 2>/dev/null || true
       - gtk-update-icon-cache -t ~/.local/share/icons/hicolor 2>/dev/null || true
 
@@ -113,9 +118,9 @@ tasks:
     desc: Remove installed binary, desktop file and icon from ~/.local
     cmds:
       - rm -f ~/.local/bin/{{.BINARY}}
-      - rm -f ~/.local/share/applications/goop.desktop
-      - rm -f ~/.local/share/icons/hicolor/256x256/apps/goop.png
-      - rm -f ~/.local/share/icons/hicolor/scalable/apps/goop.svg
+      - rm -f ~/.local/share/applications/org.codeberg.sigterm-de.goop.desktop
+      - rm -f ~/.local/share/icons/hicolor/256x256/apps/org.codeberg.sigterm-de.goop.png
+      - rm -f ~/.local/share/icons/hicolor/scalable/apps/org.codeberg.sigterm-de.goop.svg
       - update-desktop-database ~/.local/share/applications 2>/dev/null || true
       - gtk-update-icon-cache -t ~/.local/share/icons/hicolor 2>/dev/null || true
 

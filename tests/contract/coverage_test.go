@@ -5,8 +5,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-
-	"codeberg.org/sigterm-de/goop/internal/engine"
 )
 
 // TestAtobDecodeSuccess verifies atob() decodes a valid base64 string.
@@ -45,49 +43,6 @@ func TestConsoleLog(t *testing.T) {
 	}
 	if result.NewText != "ok" {
 		t.Fatalf("expected 'ok', got %q", result.NewText)
-	}
-}
-
-// TestPlistStringify verifies plist.stringify produces XML output.
-func TestPlistStringify(t *testing.T) {
-	result := newExec().Execute(context.Background(), noSelInput(
-		"",
-		`
-var plist = require('@boop/plist');
-function main(state) {
-    state.fullText = plist.stringify({key: "value"});
-}`,
-	))
-	if !result.Success {
-		t.Fatalf("plist.stringify failed: %s", result.ErrorMessage)
-	}
-	if !strings.Contains(result.NewFullText, "<?xml") {
-		t.Errorf("expected XML output, got: %q", result.NewFullText)
-	}
-}
-
-// TestPlistParseBinary verifies plist.parseBinary on XML plist input.
-func TestPlistParseBinary(t *testing.T) {
-	plistXML := `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict><key>foo</key><string>bar</string></dict></plist>`
-	inp := engine.ExecutionInput{
-		ScriptSource: `
-var plist = require('@boop/plist');
-function main(state) {
-    var obj = plist.parseBinary(state.fullText);
-    state.fullText = JSON.stringify(obj);
-}`,
-		ScriptName:    "plist-binary-test",
-		FullText:      plistXML,
-		SelectionText: plistXML,
-	}
-	result := newExec().Execute(context.Background(), inp)
-	if !result.Success {
-		t.Fatalf("plist.parseBinary failed: %s", result.ErrorMessage)
-	}
-	if !strings.Contains(result.NewFullText, "bar") {
-		t.Errorf("expected 'bar' in output, got: %q", result.NewFullText)
 	}
 }
 
@@ -165,5 +120,33 @@ func TestRequireUnknownModuleFails(t *testing.T) {
 	))
 	if result.Success {
 		t.Fatal("expected failure for unknown module")
+	}
+}
+
+// TestEvalIsPoisoned verifies that eval() is not available to scripts.
+func TestEvalIsPoisoned(t *testing.T) {
+	result := newExec().Execute(context.Background(), noSelInput(
+		"x",
+		`function main(state) { eval("state.text = 'injected'"); }`,
+	))
+	if result.Success {
+		t.Fatal("expected failure: eval should be undefined")
+	}
+}
+
+// TestFunctionConstructorIsAvailable verifies that new Function() works for
+// scripts that need it (e.g. Boop-compatible libraries like node-forge).
+// Function() only creates closures in global scope (no local variable access),
+// so it is intentionally NOT poisoned.
+func TestFunctionConstructorIsAvailable(t *testing.T) {
+	result := newExec().Execute(context.Background(), noSelInput(
+		"x",
+		`function main(state) { var f = new Function("return '42'"); state.text = f(); }`,
+	))
+	if !result.Success {
+		t.Fatalf("expected success: Function constructor should be available, got: %s", result.ErrorMessage)
+	}
+	if result.NewText != "42" {
+		t.Fatalf("expected '42', got %q", result.NewText)
 	}
 }

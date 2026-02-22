@@ -173,7 +173,13 @@ func (sp *ScriptPicker) setScripts(list []scripts.Script) {
 	if len(list) == 0 {
 		noMatch := gtk.NewLabel("No matching scripts")
 		noMatch.AddCSSClass("no-results-label")
-		sp.listBox.Append(noMatch)
+		// Wrap in an explicit row and mark it non-interactive so it is not
+		// treated as a selectable/activatable entry by GTK or keyboard nav.
+		row := gtk.NewListBoxRow()
+		row.SetActivatable(false)
+		row.SetSelectable(false)
+		row.SetChild(noMatch)
+		sp.listBox.Append(row)
 		return
 	}
 
@@ -313,8 +319,7 @@ func (sp *ScriptPicker) activateSelected() {
 // Reset clears the search and restores the full script list.
 func (sp *ScriptPicker) Reset() {
 	sp.searchEntry.SetText("")
-	sp.setScripts(sp.library.All())
-	sp.allScripts = sp.library.All()
+	sp.setScripts(sp.library.All()) // also sets sp.allScripts internally
 }
 
 // runScript executes the given script against the current editor content.
@@ -325,8 +330,8 @@ func (sp *ScriptPicker) runScript(s scripts.Script) {
 		sp.onHide()
 	}
 
-	sp.editor.SaveUndoSnapshot()
 	sp.editor.SetEnabled(false)
+	sp.status.SetBusy(true)
 
 	fullText := sp.editor.GetFullText()
 	selText := sp.editor.GetSelectedText()
@@ -346,6 +351,7 @@ func (sp *ScriptPicker) runScript(s scripts.Script) {
 		result := sp.exec.Execute(context.Background(), inp)
 
 		glib.IdleAdd(func() {
+			sp.status.SetBusy(false)
 			sp.editor.SetEnabled(true)
 			sp.applyResult(result)
 		})
@@ -372,7 +378,7 @@ func (sp *ScriptPicker) applyResult(result engine.ExecutionResult) {
 	if result.InfoMessage != "" {
 		sp.status.ShowSuccess(result.InfoMessage)
 	} else {
-		sp.status.ShowSuccess("✓ " + result.ScriptName + " applied")
+		sp.status.ShowSuccess(result.ScriptName + " applied")
 	}
 
 	if sp.postScript != nil {

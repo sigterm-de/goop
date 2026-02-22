@@ -5,19 +5,19 @@ import (
 	gtksource "libdb.so/gotk4-sourceview/pkg/gtksource/v5"
 )
 
-// Editor wraps a GtkSourceView and its buffer, providing text access and a
-// single-level undo capability.
+// Editor wraps a GtkSourceView and its buffer, providing text access and
+// full multi-level undo via GtkTextBuffer's built-in undo stack.
 type Editor struct {
 	View   *gtksource.View
 	buffer *gtksource.Buffer
-
-	undoSnapshot string
-	hasSnapshot  bool
 }
 
 // NewEditor creates and initialises an Editor widget.
 func NewEditor() *Editor {
 	buf := gtksource.NewBuffer(nil)
+	// 0 = unlimited undo levels; the default (200) is fine too, but unlimited
+	// is more user-friendly for a text transformation tool.
+	buf.SetMaxUndoLevels(0)
 
 	view := gtksource.NewViewWithBuffer(buf)
 	view.SetWrapMode(gtk.WrapWord)
@@ -43,7 +43,9 @@ func (e *Editor) GetFullText() string {
 	return e.buffer.Text(start, end, true)
 }
 
-// SetFullText replaces the entire buffer content.
+// SetFullText replaces the entire buffer content. GtkTextBuffer.SetText()
+// internally wraps the change in a user-action group, so the operation is
+// a single step on the native undo stack and can be undone with Ctrl+Z.
 func (e *Editor) SetFullText(text string) {
 	e.buffer.SetText(text)
 }
@@ -91,22 +93,11 @@ func (e *Editor) InsertAtCursor(text string) {
 	e.buffer.InsertAtCursor(text)
 }
 
-// SaveUndoSnapshot saves the current full text so it can be restored by Undo.
-// Call this before applying a transformation.
-func (e *Editor) SaveUndoSnapshot() {
-	e.undoSnapshot = e.GetFullText()
-	e.hasSnapshot = true
-}
-
-// Undo restores the text saved by the last SaveUndoSnapshot call.
-// Returns true if a snapshot was available and was applied.
-func (e *Editor) Undo() bool {
-	if !e.hasSnapshot {
-		return false
-	}
-	e.SetFullText(e.undoSnapshot)
-	e.hasSnapshot = false
-	return true
+// CanUndo reports whether at least one undo action is available.
+// GtkSourceView's own Ctrl+Z shortcut controller calls buffer.Undo() directly;
+// this method exists for the ConnectUndo signal handler in window.go.
+func (e *Editor) CanUndo() bool {
+	return e.buffer.CanUndo()
 }
 
 // SetEnabled enables or disables keyboard input on the editor widget.

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"codeberg.org/sigterm-de/goop/internal/logging"
@@ -45,10 +46,18 @@ func (e *executor) Execute(ctx context.Context, input ExecutionInput) (result Ex
 	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
 
 	// ── Sandbox: poison prohibited globals ───────────────────────────────────
+	// Network, OS, and timer APIs are removed to prevent scripts from
+	// communicating outside the sandbox.
+	// eval() is removed because it executes strings with access to local scope,
+	// enabling obfuscation techniques that could bypass future sandbox changes.
+	// Function() is intentionally NOT removed: it only creates closures in the
+	// global scope (no local variable access) and many legitimate Boop-compatible
+	// libraries (e.g. node-forge) rely on it internally.
 	poisoned := []string{
 		"fetch", "XMLHttpRequest", "WebSocket",
 		"process", "global", "Buffer",
 		"setTimeout", "setInterval", "clearTimeout", "clearInterval",
+		"eval",
 	}
 	for _, name := range poisoned {
 		vm.Set(name, goja.Undefined())
@@ -88,9 +97,9 @@ func (e *executor) Execute(ctx context.Context, input ExecutionInput) (result Ex
 	}
 
 	// ── Timeout timer ─────────────────────────────────────────────────────────
-	timedOut := false
+	var timedOut atomic.Bool
 	timer := time.AfterFunc(timeout, func() {
-		timedOut = true
+		timedOut.Store(true)
 		vm.Interrupt(errTimeout)
 	})
 	defer timer.Stop()
@@ -101,7 +110,7 @@ func (e *executor) Execute(ctx context.Context, input ExecutionInput) (result Ex
 	go func() {
 		select {
 		case <-ctx.Done():
-			timedOut = true
+			timedOut.Store(true)
 			vm.Interrupt(errTimeout)
 		case <-stop:
 		}
@@ -109,7 +118,7 @@ func (e *executor) Execute(ctx context.Context, input ExecutionInput) (result Ex
 
 	// ── Run: define functions + call main(state) ─────────────────────────────
 	if _, runErr := vm.RunProgram(prog); runErr != nil {
-		return e.runError(runErr, timedOut, timeout, input.ScriptName)
+		return e.runError(runErr, timedOut.Load(), timeout, input.ScriptName)
 	}
 
 	// Retrieve and call main(state)
@@ -124,7 +133,7 @@ func (e *executor) Execute(ctx context.Context, input ExecutionInput) (result Ex
 
 	stateVal := vm.Get("state")
 	if _, callErr := mainFn(goja.Undefined(), stateVal); callErr != nil {
-		return e.runError(callErr, timedOut, timeout, input.ScriptName)
+		return e.runError(callErr, timedOut.Load(), timeout, input.ScriptName)
 	}
 
 	return state.Result(input.ScriptName)
@@ -186,10 +195,22 @@ func bindState(vm *goja.Runtime, state *ScriptState) error {
 		return fmt.Errorf("text property: %w", err)
 	}
 
-	// selection (read-only)
+	// selection — exposed as a frozen object so scripts cannot mutate it.
+	// Mutations would be silently discarded by the Go side, which would
+	// surprise script authors expecting Boop compatibility.
 	selObj := vm.NewObject()
-	selObj.Set("start", state.SelectionInfo.Start)
-	selObj.Set("end", state.SelectionInfo.End)
+	if err := selObj.DefineDataProperty("start",
+		vm.ToValue(state.SelectionInfo.Start),
+		goja.FLAG_FALSE, goja.FLAG_FALSE, goja.FLAG_TRUE,
+	); err != nil {
+		return fmt.Errorf("selection.start property: %w", err)
+	}
+	if err := selObj.DefineDataProperty("end",
+		vm.ToValue(state.SelectionInfo.End),
+		goja.FLAG_FALSE, goja.FLAG_FALSE, goja.FLAG_TRUE,
+	); err != nil {
+		return fmt.Errorf("selection.end property: %w", err)
+	}
 	stateObj.Set("selection", selObj)
 
 	// insert() method
@@ -225,13 +246,28 @@ func bindState(vm *goja.Runtime, state *ScriptState) error {
 }
 
 // registerBtoaAtob registers base64 encode/decode globals matching the browser API.
+//
+// btoa() follows the spec: input must be a Latin-1 string (all code points ≤ 0xFF).
+// Characters outside that range cause an InvalidCharacterError, matching Boop/browser
+// behaviour. Callers that need to encode UTF-8 text should first apply
+// encodeURIComponent (or the equivalent) to produce a Latin-1-safe string.
 func registerBtoaAtob(vm *goja.Runtime) {
 	vm.Set("btoa", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) == 0 {
 			return vm.ToValue("")
 		}
-		encoded := base64.StdEncoding.EncodeToString([]byte(call.Arguments[0].String()))
-		return vm.ToValue(encoded)
+		s := call.Arguments[0].String()
+		// Validate Latin-1: every code point must fit in one byte (≤ U+00FF).
+		// Convert rune-by-rune so multi-byte UTF-8 sequences are handled correctly.
+		runes := []rune(s)
+		buf := make([]byte, len(runes))
+		for i, r := range runes {
+			if r > 0xFF {
+				panic(vm.NewGoError(fmt.Errorf("InvalidCharacterError: btoa received a character (U+%04X) outside the Latin-1 range; encode to UTF-8 first with encodeURIComponent", r)))
+			}
+			buf[i] = byte(r)
+		}
+		return vm.ToValue(base64.StdEncoding.EncodeToString(buf))
 	})
 
 	vm.Set("atob", func(call goja.FunctionCall) goja.Value {

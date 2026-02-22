@@ -248,6 +248,38 @@ function main(state) {}`
 	}
 }
 
+// TC-L-11: User scripts exceeding 1 MB are skipped.
+func TestTC_L11_OversizedScriptSkipped(t *testing.T) {
+	dir := t.TempDir()
+	writeScript(t, dir, "normal.js", validScript("Normal Script", "Fits in limit"))
+
+	// Build a script whose body exceeds the 5 MB limit.
+	header := validScript("Big Script", "Too large")
+	padding := make([]byte, 5*1024*1024+1)
+	for i := range padding {
+		padding[i] = '/'
+	}
+	bigContent := header + "\n// " + string(padding)
+	writeScript(t, dir, "big.js", bigContent)
+
+	result, err := newLoader().Load(dir)
+	if err != nil {
+		t.Fatalf("Load() returned error: %v", err)
+	}
+	if result.UserCount != 1 {
+		t.Errorf("expected UserCount=1 (only normal.js), got %d", result.UserCount)
+	}
+	found := false
+	for _, s := range result.SkippedFiles {
+		if filepath.Base(s) == "big.js" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected big.js in SkippedFiles; got %v", result.SkippedFiles)
+	}
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 func writeScript(t *testing.T, dir, name, content string) {

@@ -17,6 +17,14 @@ type LoadResult struct {
 	UserCount    int
 }
 
+// maxUserScriptBytes is the size cap for a single user-provided script file.
+// Files larger than this are skipped to prevent accidental memory exhaustion
+// from a misplaced binary or data file. In practice ParseHeader() already
+// rejects files without a valid /**! block, so this limit is a backstop only.
+// Real Boop scripts are typically well under 100 KB; 5 MB gives ample room
+// for scripts with large embedded data while still bounding memory exposure.
+const maxUserScriptBytes = 5 * 1024 * 1024 // 5 MB
+
 // Loader discovers and parses scripts from an embedded asset FS and the user
 // scripts directory.
 type Loader interface {
@@ -104,6 +112,18 @@ func (l *loader) loadUserScripts(dir string, result *LoadResult) {
 
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".js" {
+			continue
+		}
+
+		info, statErr := entry.Info()
+		if statErr != nil {
+			logging.Log(logging.WARN, entry.Name(), "cannot stat user script: "+statErr.Error())
+			result.SkippedFiles = append(result.SkippedFiles, entry.Name())
+			continue
+		}
+		if info.Size() > maxUserScriptBytes {
+			logging.Log(logging.WARN, entry.Name(), fmt.Sprintf("skipping: file size %d B exceeds limit of %d B", info.Size(), maxUserScriptBytes))
+			result.SkippedFiles = append(result.SkippedFiles, entry.Name())
 			continue
 		}
 

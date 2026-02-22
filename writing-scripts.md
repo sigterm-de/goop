@@ -1,7 +1,8 @@
 # Writing Scripts for goop
 
 Scripts are plain `.js` files placed in `~/.local/share/goop/scripts/`. goop picks them
-up automatically — no restart required.
+up automatically — no restart required. \
+Please note, there is a 5MB size limit in place per valid script file.
 
 ---
 

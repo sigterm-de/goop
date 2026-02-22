@@ -198,3 +198,18 @@ func TestTC_E10_BtoaAtob(t *testing.T) {
 		t.Fatalf("expected aGVsbG8=, got %q", result.NewText)
 	}
 }
+
+// TC-E-11: btoa rejects characters outside the Latin-1 range (U+0100+).
+// "€" is U+20AC which is above U+00FF.
+func TestTC_E11_BtoaRejectsNonLatin1(t *testing.T) {
+	result := newExec().Execute(context.Background(), noSelInput(
+		"price: €100",
+		`function main(state) { state.text = btoa(state.text); }`,
+	))
+	if result.Success {
+		t.Fatal("expected failure for non-Latin-1 input to btoa, got success")
+	}
+	if result.ErrorMessage == "" {
+		t.Fatal("expected non-empty error message")
+	}
+}

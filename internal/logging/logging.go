@@ -46,16 +46,20 @@ var (
 	logPath string
 )
 
-// InitLogger opens (or creates) the log file under the XDG config home and
-// returns the resolved absolute path so the UI can display it in error messages.
+// InitLogger opens (or creates) the log file under the XDG state home
+// (~/.local/state/<appName>/<appName>.log) and returns the resolved absolute
+// path so the UI can display it in error messages.
+//
+// XDG_STATE_HOME is the correct location for runtime-generated log files;
+// XDG_CONFIG_HOME is reserved for user-editable configuration.
 func InitLogger(appName string) (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	rel := filepath.Join(appName, appName+".log")
-	p, err := xdg.ConfigFile(rel)
+	p, err := xdg.StateFile(rel)
 	if err != nil {
-		return "", fmt.Errorf("logging: resolve config path: %w", err)
+		return "", fmt.Errorf("logging: resolve state path: %w", err)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
