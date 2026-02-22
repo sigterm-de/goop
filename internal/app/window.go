@@ -22,18 +22,19 @@ type ApplicationWindow struct {
 	prefs      AppPreferences
 	app        *gtk.Application
 	scriptsBtn *gtk.Button
+	version    string
 }
 
-// NewApplicationWindow builds the complete UI hierarchy and wires keyboard
-// shortcuts.
+// NewApplicationWindow builds the complete UI hierarchy and wires keyboard shortcuts.
 func NewApplicationWindow(
 	app *gtk.Application,
 	lib scripts.Library,
 	exec engine.Executor,
 	logPath string,
 	prefs AppPreferences,
+	version string,
 ) *ApplicationWindow {
-	w := &ApplicationWindow{LogPath: logPath, prefs: prefs, app: app}
+	w := &ApplicationWindow{LogPath: logPath, prefs: prefs, app: app, version: version}
 
 	// ── Core widgets ─────────────────────────────────────────────────────────
 	w.editor = ui.NewEditor()
@@ -109,11 +110,12 @@ func NewApplicationWindow(
 	header := gtk.NewHeaderBar()
 	header.SetShowTitleButtons(true)
 
-	w.scriptsBtn = gtk.NewButton()
-	w.scriptsBtn.SetIconName("system-search-symbolic")
-	w.scriptsBtn.AddCSSClass("flat")
-	w.scriptsBtn.ConnectClicked(func() { w.ToggleScriptPicker() })
-	header.PackEnd(w.scriptsBtn)
+	aboutBtn := gtk.NewButton()
+	aboutBtn.SetIconName("help-about-symbolic")
+	aboutBtn.SetTooltipText("About goop")
+	aboutBtn.AddCSSClass("flat")
+	aboutBtn.ConnectClicked(func() { ShowAboutDialog(w.Win, w.version) })
+	header.PackEnd(aboutBtn)
 
 	settingsBtn := gtk.NewButton()
 	settingsBtn.SetIconName("preferences-system-symbolic")
@@ -140,6 +142,12 @@ func NewApplicationWindow(
 		})
 	})
 	header.PackEnd(settingsBtn)
+
+	w.scriptsBtn = gtk.NewButton()
+	w.scriptsBtn.SetIconName("system-search-symbolic")
+	w.scriptsBtn.AddCSSClass("flat")
+	w.scriptsBtn.ConnectClicked(func() { w.ToggleScriptPicker() })
+	header.PackEnd(w.scriptsBtn)
 
 	w.Win.SetTitlebar(header)
 

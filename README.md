@@ -74,8 +74,8 @@ task: Available tasks for this project:
 
 # Custom Scripts
 
-Place `.js` files in `~/.local/share/goop/scripts/`. See
-[writing-scripts.md](writing-scripts.md) for the full guide, including
+Place `.js` files in `~/.local/share/goop/scripts/`. \
+See [writing-scripts.md](writing-scripts.md) for the full guide, including
 the state API, available `@boop/` modules, and how CommonJS `require()` works in
 goop (an improvement over original Boop, which had no module system at all).
 

@@ -70,7 +70,7 @@ func activate(app *gtk.Application, appVersion string) {
 	}
 
 	// ── Window ────────────────────────────────────────────────────────────────
-	win := NewApplicationWindow(app, lib, exec, logPath, prefs)
+	win := NewApplicationWindow(app, lib, exec, logPath, prefs, appVersion)
 
 	app.SetAccelsForAction("win.toggle-picker", []string{prefs.ScriptPickerShortcut})
 
