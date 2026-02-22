@@ -135,7 +135,9 @@ tasks:
       - echo "module.exports = require('node-forge');" > {{.FORGE_DIR}}/index.js
       - cd {{.FORGE_DIR}} && npx browserify index.js --standalone forge -o node-forge.bundle.js
       - cd {{.FORGE_DIR}} && npx terser node-forge.bundle.js --compress --mangle -o node-forge.min.js
-      - printf 'const window = this;\n' | cat - {{.FORGE_DIR}}/node-forge.min.js > {{.OUT}}
+      - |
+        FORGE_VER=$(node -e "console.log(require('{{.FORGE_DIR}}/node_modules/node-forge/package.json').version)")
+        printf '/**'!' node-forge v%s https://github.com/digitalbazaar/forge | (BSD-3-Clause OR GPL-2.0) */\nconst window = this;\n' "$FORGE_VER" | cat - {{.FORGE_DIR}}/node-forge.min.js > {{.OUT}}
       - echo "Bundle written to {{.OUT}} ($(wc -c < {{.OUT}}) bytes)"
 
   clean:

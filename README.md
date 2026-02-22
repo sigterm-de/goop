@@ -83,6 +83,10 @@ goop (an improvement over original Boop, which had no module system at all).
 
 The `Scripts/` directory contains community-contributed scripts from the upstream Boop
 project. See [Scripts/README.md](Scripts/README.md) for details.
+
 ## License
 
 See [LICENSE](LICENSE).
+
+- [Scripts/](Scripts) copied from [Boop](https://github.com/IvanMathy/Boop/tree/main/Scripts)
+- [assets/scripts/](assets/scripts) copied from [Boop](https://github.com/IvanMathy/Boop/tree/main/Boop/Boop/scripts)
