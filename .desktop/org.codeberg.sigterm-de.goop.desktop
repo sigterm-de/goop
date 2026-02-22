@@ -2,7 +2,7 @@
 Name=goop
 Comment=Text transformation tool
 Exec=goop
-Icon=goop
+Icon=org.codeberg.sigterm-de.goop
 Type=Application
 Categories=Utility;TextTools;
 Keywords=text;transform;boop;encode;decode;
