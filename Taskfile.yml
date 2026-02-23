@@ -1,7 +1,8 @@
 version: "3"
 
 vars:
-  BINARY: goop
+  BINARY: goop.bin
+  BINARY_INSTALL: goop
   CMD: ./cmd/goop
   COVER_OUT: coverage.out
   COVER_PKGS: ./internal/engine/...,./internal/scripts/...,./internal/logging/...
@@ -107,7 +108,7 @@ tasks:
     desc: Install binary, desktop file and icon to ~/.local
     deps: [build:release]
     cmds:
-      - install -Dm755 {{.BINARY}} ~/.local/bin/{{.BINARY}}
+      - install -Dm755 {{.BINARY}} ~/.local/bin/{{.BINARY_INSTALL}}
       - install -Dm644 .desktop/org.codeberg.sigterm-de.goop.desktop ~/.local/share/applications/org.codeberg.sigterm-de.goop.desktop
       - install -Dm644 assets/icons/goop.png ~/.local/share/icons/hicolor/256x256/apps/org.codeberg.sigterm-de.goop.png
       - install -Dm644 assets/icons/goop-drop.svg ~/.local/share/icons/hicolor/scalable/apps/org.codeberg.sigterm-de.goop.svg
@@ -117,7 +118,7 @@ tasks:
   uninstall:
     desc: Remove installed binary, desktop file and icon from ~/.local
     cmds:
-      - rm -f ~/.local/bin/{{.BINARY}}
+      - rm -f ~/.local/bin/{{.BINARY_INSTALL}}
       - rm -f ~/.local/share/applications/org.codeberg.sigterm-de.goop.desktop
       - rm -f ~/.local/share/icons/hicolor/256x256/apps/org.codeberg.sigterm-de.goop.png
       - rm -f ~/.local/share/icons/hicolor/scalable/apps/org.codeberg.sigterm-de.goop.svg
