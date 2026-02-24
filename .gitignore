@@ -26,7 +26,6 @@ go.work.sum
 .env
 
 # Build output
-goop.bin
 dist/
 
 # Coverage

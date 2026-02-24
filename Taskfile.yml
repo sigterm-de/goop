@@ -1,7 +1,7 @@
 version: "3"
 
 vars:
-  BINARY: goop.bin
+  BINARY: dist/goop
   BINARY_INSTALL: goop
   CMD: ./cmd/goop
   COVER_OUT: coverage.out

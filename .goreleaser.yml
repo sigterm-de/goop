@@ -1,0 +1,58 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: goop
+    main: ./cmd/goop
+    binary: goop
+    env:
+      - CGO_ENABLED=1
+      - CC=clang
+    goos: [linux]
+    goarch: [amd64]
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: goop-release
+    ids: [goop]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - src: .desktop/org.codeberg.sigterm-de.goop.desktop
+        dst: .
+        strip_parent: true
+      - src: assets/icons/goop.png
+        dst: .
+        strip_parent: true
+      - src: assets/icons/goop-drop.svg
+        dst: .
+        strip_parent: true
+      - src: scripts/install.sh
+        dst: .
+        strip_parent: true
+      - LICENSE
+
+  - id: goop-scripts
+    meta: true
+    name_template: "{{ .ProjectName }}-scripts_{{ .Version }}"
+    files:
+      - src: Scripts/**
+        dst: scripts
+        strip_parent: true
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^chore:"
+      - "^test:"
+      - "^docs:"
