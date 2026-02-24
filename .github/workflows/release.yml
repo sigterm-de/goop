@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            libgtk-4-dev libgtksourceview-5-dev pkg-config clang
+            libgtk-4-dev libgtksourceview-5-dev gobject-introspection pkg-config clang
 
       - uses: actions/setup-go@v6
         with:
